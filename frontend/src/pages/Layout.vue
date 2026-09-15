@@ -8,6 +8,10 @@
       <el-menu mode="horizontal" :default-active="active" router class="menu" :ellipsis="false">
         <el-menu-item index="/requirements">需求大厅</el-menu-item>
         <el-menu-item index="/dashboard">我的工作台</el-menu-item>
+        <el-menu-item index="/disputes">
+          争议处理
+          <el-badge v-if="store.isAdmin" :is-hidden="!hasDispute" is-dot class="dot-badge" />
+        </el-menu-item>
       </el-menu>
       <div class="user-box">
         <template v-if="store.isAuthenticated">
@@ -37,20 +41,29 @@
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '../stores/user';
+import { useDisputeStore } from '../stores/dispute';
 import UserAvatar from '../components/common/UserAvatar.vue';
 
 const route = useRoute();
 const router = useRouter();
 const store = useUserStore();
+const disputeStore = useDisputeStore();
+
+const hasDispute = computed(() => disputeStore.openCount > 0);
 
 const active = computed(() => {
   const path = route.path;
   if (path.startsWith('/requirements')) return '/requirements';
   if (path.startsWith('/dashboard')) return '/dashboard';
+  if (path.startsWith('/disputes')) return '/disputes';
   if (path.startsWith('/contracts')) return '/dashboard';
   if (path.startsWith('/profile')) return '/dashboard';
   return '';
 });
+
+if (store.isAuthenticated) {
+  disputeStore.fetchList().catch(() => undefined);
+}
 
 function onCommand(cmd: string) {
   if (cmd === 'logout') {
@@ -71,5 +84,6 @@ function onCommand(cmd: string) {
 .menu { flex: 1; border-bottom: none; }
 .user-box { display: flex; align-items: center; }
 .user-name { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.dot-badge { margin-left: 6px; }
 .main { background: #f5f7fa; padding: 0; }
 </style>

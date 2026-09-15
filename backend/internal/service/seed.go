@@ -73,7 +73,37 @@ func (s *SeedService) EnsureSeedData(ctx context.Context) error {
 		}
 	}
 
+	// Seed one in-progress contract (req 0 awarded to bid 0) so the dispute
+	// workflow is reachable out of the box.
+	requirements[0].Status = constants.RequirementInProgress
+	requirements[0].WinnerID = users[1].ID
+	if err := s.db.WithContext(ctx).Save(requirements[0]).Error; err != nil {
+		return fmt.Errorf("seed: update requirement: %w", err)
+	}
+	bids[0].Status = constants.BidAccepted
+	if err := s.db.WithContext(ctx).Save(bids[0]).Error; err != nil {
+		return fmt.Errorf("seed: update bid: %w", err)
+	}
+	stages := []model.ContractStage{
+		{Name: "项目启动", Amount: bids[0].Amount * 0.3, Status: "done", DueAt: "签约后3日内"},
+		{Name: "中期交付", Amount: bids[0].Amount * 0.4, Status: "in_progress", DueAt: "工期过半"},
+		{Name: "验收结项", Amount: bids[0].Amount * 0.3, Status: "pending", DueAt: "验收通过后"},
+	}
+	contract := &model.Contract{
+		ContractNo:    fmt.Sprintf("CY-%d-%d", requirements[0].ID, bids[0].ID),
+		TotalAmount:   bids[0].Amount,
+		PaymentType:   "installments",
+		Stages:        stages,
+		Status:        constants.ContractInProgress,
+		RequirementID: requirements[0].ID,
+		PartyAID:      users[0].ID,
+		PartyBID:      users[1].ID,
+	}
+	if err := s.db.WithContext(ctx).Create(contract).Error; err != nil {
+		return fmt.Errorf("seed: create contract: %w", err)
+	}
+
 	s.logger.Info("seed data inserted",
-		"users", len(users), "requirements", len(requirements), "bids", len(bids))
+		"users", len(users), "requirements", len(requirements), "bids", len(bids), "contracts", 1)
 	return nil
 }

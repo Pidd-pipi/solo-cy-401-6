@@ -8,6 +8,17 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+// ApiError preserves the backend business error code so callers can tell apart
+// distinct rejection reasons (e.g. dispute 40310/40910/40913).
+export class ApiError extends Error {
+  code: number;
+  constructor(code: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+  }
+}
+
 export const request = axios.create({
   baseURL: '/api/v1',
   timeout: 15000
@@ -29,7 +40,7 @@ request.interceptors.response.use(
         return response;
       }
       ElMessage.error(body.message || '请求失败');
-      return Promise.reject(new Error(body.message || '请求失败'));
+      return Promise.reject(new ApiError(body.code, body.message || '请求失败'));
     }
     return response;
   },
@@ -41,9 +52,11 @@ request.interceptors.response.use(
         router.push('/login');
       }
     }
-    const text = error.response?.data?.message || error.message || '请求失败';
+    const body = error.response?.data;
+    const text = body?.message || error.message || '请求失败';
+    const code: number = typeof body?.code === 'number' ? body.code : (error.response?.status ?? 0);
     ElMessage.error(text);
-    return Promise.reject(error);
+    return Promise.reject(new ApiError(code, text));
   }
 );
 

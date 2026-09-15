@@ -4,7 +4,11 @@
     <el-card v-if="contract" class="detail-card">
       <div class="c-head">
         <h2>{{ contract.contractNo }}</h2>
-        <StatusBadge :status="contract.status" kind="contract" />
+        <div class="badges">
+          <StatusBadge :status="contract.status" kind="contract" />
+          <StatusBadge v-if="contract.activeDispute" :status="contract.activeDispute.status" kind="dispute" />
+          <el-tag v-else-if="contract.lastRuling" type="success" size="small" effect="light">争议已裁决</el-tag>
+        </div>
       </div>
       <p class="muted">需求：{{ contract.requirement?.title }}</p>
       <p><b>{{ formatCurrency(contract.totalAmount) }}</b>
@@ -24,6 +28,8 @@
       <template #header><b>阶段进度</b></template>
       <ProgressSteps :stages="contract.stages" />
     </el-card>
+
+    <DisputePanel v-if="contract && canSeeDispute" :contract="contract" @changed="load" />
   </div>
 </template>
 
@@ -37,6 +43,7 @@ import { useUserStore } from '../stores/user';
 import { contractApi } from '../api/contract';
 import StatusBadge from '../components/common/StatusBadge.vue';
 import ProgressSteps from '../components/common/ProgressSteps.vue';
+import DisputePanel from '../components/common/DisputePanel.vue';
 import { formatCurrency } from '../utils/formatCurrency';
 
 const route = useRoute();
@@ -45,6 +52,15 @@ const userStore = useUserStore();
 const contract = ref<Contract | null>(null);
 
 const isPartyA = computed(() => contract.value?.partyAId === userStore.user?.id);
+// 仅合同当事方与管理员可见争议面板。
+const canSeeDispute = computed(() => {
+  if (!contract.value || !userStore.user) return false;
+  return (
+    userStore.isAdmin ||
+    userStore.user.id === contract.value.partyAId ||
+    userStore.user.id === contract.value.partyBId
+  );
+});
 
 async function load() {
   const id = Number(route.params.id);
@@ -71,7 +87,8 @@ onMounted(() => void load());
 <style scoped>
 .detail-card { margin-bottom: 16px; }
 .c-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.badges { display: flex; gap: 8px; }
 .c-parties { display: flex; gap: 24px; margin: 12px 0; }
 .actions { margin-top: 16px; }
-.stages-card { margin-bottom: 24px; }
+.stages-card { margin-bottom: 16px; }
 </style>

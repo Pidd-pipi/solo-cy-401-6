@@ -9,10 +9,10 @@ import (
 
 // ContractStage is one payment milestone of a contract.
 type ContractStage struct {
-	Name      string `json:"name"`
-	Amount    float64 `json:"amount"`
-	Status    string `json:"status"` // pending / in_progress / done
-	DueAt     string `json:"dueAt"`
+	Name   string  `json:"name"`
+	Amount float64 `json:"amount"`
+	Status string  `json:"status"` // pending / in_progress / done
+	DueAt  string  `json:"dueAt"`
 }
 
 // Contract is the signed agreement between requester and freelancer.
@@ -30,10 +30,16 @@ type Contract struct {
 	UpdatedAt     time.Time `json:"-"`
 
 	// Computed fields.
-	Stages    []ContractStage `gorm:"-" json:"stages"`
-	PartyA    *User           `gorm:"foreignKey:PartyAID" json:"partyA"`
-	PartyB    *User           `gorm:"foreignKey:PartyBID" json:"partyB"`
-	Requirement *Requirement  `gorm:"foreignKey:RequirementID" json:"requirement"`
+	Stages      []ContractStage `gorm:"-" json:"stages"`
+	PartyA      *User           `gorm:"foreignKey:PartyAID" json:"partyA"`
+	PartyB      *User           `gorm:"foreignKey:PartyBID" json:"partyB"`
+	Requirement *Requirement    `gorm:"foreignKey:RequirementID" json:"requirement"`
+	// ActiveDispute is the in-process dispute, if any (not persisted on contract).
+	ActiveDispute *Dispute `gorm:"-" json:"activeDispute,omitempty"`
+	// LastRuling is the most recent closed (ruled) dispute, if any. It stays
+	// visible after a dispute closes so the verdict (liability / refund) keeps
+	// showing on the contract list and workbench.
+	LastRuling *Dispute `gorm:"-" json:"lastRuling,omitempty"`
 }
 
 // BeforeSave serializes stages.

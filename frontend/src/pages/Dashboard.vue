@@ -6,14 +6,19 @@
     </div>
 
     <el-row :gutter="16" class="stats">
-      <el-col :span="8">
+      <el-col :span="6">
         <el-card><div class="stat"><b>{{ data?.counts.requirements || 0 }}</b><span class="muted">已发布需求</span></div></el-card>
       </el-col>
-      <el-col :span="8">
+      <el-col :span="6">
         <el-card><div class="stat"><b>{{ data?.counts.bids || 0 }}</b><span class="muted">已提交报价</span></div></el-card>
       </el-col>
-      <el-col :span="8">
+      <el-col :span="6">
         <el-card><div class="stat"><b>{{ data?.counts.contracts || 0 }}</b><span class="muted">进行中合同</span></div></el-card>
+      </el-col>
+      <el-col :span="6">
+        <el-card shadow="hover" class="dispute-stat" @click="$router.push('/disputes')">
+          <div class="stat"><b :class="{ alert: (data?.counts.openDisputes || 0) > 0 }">{{ data?.counts.openDisputes || 0 }}</b><span class="muted">处理中争议</span></div>
+        </el-card>
       </el-col>
     </el-row>
 
@@ -70,4 +75,6 @@ onMounted(() => void load());
 .stats { margin-bottom: 20px; }
 .stat { display: flex; flex-direction: column; align-items: center; padding: 8px; }
 .stat b { font-size: 28px; color: #243b53; }
+.stat b.alert { color: #e6a23c; }
+.dispute-stat { cursor: pointer; }
 </style>

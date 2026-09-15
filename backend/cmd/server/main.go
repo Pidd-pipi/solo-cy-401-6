@@ -49,6 +49,8 @@ func run(logger *slog.Logger) error {
 		&model.Requirement{},
 		&model.Bid{},
 		&model.Contract{},
+		&model.Dispute{},
+		&model.DisputeSupplement{},
 		&model.OperationLog{},
 	); err != nil {
 		return fmt.Errorf("auto migrate: %w", err)
@@ -139,15 +141,17 @@ func buildHandlers(cfg *config.Config, db *gorm.DB, logger *slog.Logger) (*route
 	reqRepo := repository.NewRequirementRepository(db)
 	bidRepo := repository.NewBidRepository(db)
 	contractRepo := repository.NewContractRepository(db)
+	disputeRepo := repository.NewDisputeRepository(db)
 	logRepo := repository.NewOperationLogRepository(db)
 
 	logSvc := service.NewOperationLogService(logRepo, logger)
 	authSvc := service.NewAuthService(cfg, userRepo, logSvc, logger)
 	userSvc := service.NewUserService(userRepo, logSvc, logger)
-	contractSvc := service.NewContractService(contractRepo, logSvc, logger)
+	contractSvc := service.NewContractService(contractRepo, disputeRepo, logSvc, logger)
+	disputeSvc := service.NewDisputeService(db, contractRepo, disputeRepo, logSvc, logger)
 	bidSvc := service.NewBidService(bidRepo, reqRepo, logSvc, logger)
 	reqSvc := service.NewRequirementService(reqRepo, bidRepo, logSvc, logger)
-	dashboardSvc := service.NewDashboardService(reqRepo, bidRepo, contractRepo, logger)
+	dashboardSvc := service.NewDashboardService(reqRepo, bidRepo, contractRepo, disputeRepo, logger)
 
 	return &router.Handlers{
 		Auth:         handler.NewAuthHandler(authSvc, logger),
@@ -155,6 +159,7 @@ func buildHandlers(cfg *config.Config, db *gorm.DB, logger *slog.Logger) (*route
 		Requirement:  handler.NewRequirementHandler(reqSvc, contractSvc, logger),
 		Bid:          handler.NewBidHandler(bidSvc, logger),
 		Contract:     handler.NewContractHandler(contractSvc, logger),
+		Dispute:      handler.NewDisputeHandler(disputeSvc, logger),
 		Dashboard:    handler.NewDashboardHandler(dashboardSvc, logger),
 		OperationLog: handler.NewOperationLogHandler(logSvc, logger),
 	}, userRepo, logSvc

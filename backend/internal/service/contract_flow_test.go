@@ -1,8 +1,10 @@
 package service
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
+	"sync/atomic"
 	"testing"
 
 	"gorm.io/driver/sqlite"
@@ -14,13 +16,25 @@ import (
 	"github.com/gigmatch/gigmatch/internal/repository"
 )
 
+var flowDBCounter uint64
+
 func newFlowTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+	// A unique shared in-memory DSN per call keeps tests isolated (and safe
+	// under -count=N) while retaining a single live connection.
+	dsn := fmt.Sprintf("file:flow%d?mode=memory&cache=shared", atomic.AddUint64(&flowDBCounter, 1))
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
-	if err := db.AutoMigrate(&model.User{}, &model.Requirement{}, &model.Bid{}, &model.Contract{}, &model.OperationLog{}); err != nil {
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sqlDB.SetMaxOpenConns(1)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	if err := db.AutoMigrate(&model.User{}, &model.Requirement{}, &model.Bid{}, &model.Contract{},
+		&model.Dispute{}, &model.DisputeSupplement{}, &model.OperationLog{}); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	return db
@@ -34,6 +48,7 @@ func TestAcceptBidCreatesContract(t *testing.T) {
 	reqRepo := repository.NewRequirementRepository(db)
 	bidRepo := repository.NewBidRepository(db)
 	contractRepo := repository.NewContractRepository(db)
+	disputeRepo := repository.NewDisputeRepository(db)
 	logRepo := repository.NewOperationLogRepository(db)
 
 	requester := &model.User{Username: "req1", PasswordHash: "x", Name: "需求方", Role: constants.RoleRequester}
@@ -46,7 +61,7 @@ func TestAcceptBidCreatesContract(t *testing.T) {
 	}
 
 	logSvc := NewOperationLogService(logRepo, logger)
-	contractSvc := NewContractService(contractRepo, logSvc, logger)
+	contractSvc := NewContractService(contractRepo, disputeRepo, logSvc, logger)
 	reqSvc := NewRequirementService(reqRepo, bidRepo, logSvc, logger)
 	bidSvc := NewBidService(bidRepo, reqRepo, logSvc, logger)
 

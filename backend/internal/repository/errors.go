@@ -4,6 +4,7 @@ package repository
 import "errors"
 
 var (
-	ErrNotFound = errors.New("resource not found")
-	ErrConflict = errors.New("resource conflict")
+	ErrNotFound  = errors.New("resource not found")
+	ErrConflict  = errors.New("resource conflict")
+	ErrDuplicate = errors.New("duplicate resource")
 )

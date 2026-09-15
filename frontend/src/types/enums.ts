@@ -34,6 +34,21 @@ export enum UserRole {
   Admin = 'admin'
 }
 
+// 合同争议状态（与后端 backend/internal/constants/dispute_status.go 对齐）
+export enum DisputeStatus {
+  Submitted = 'submitted',
+  Accepted = 'accepted',
+  AwaitingSupplement = 'awaiting_supplement',
+  Ruled = 'ruled'
+}
+
+// 裁决责任方（与后端 dto.RuleDisputeRequest.rulingParty 对齐）
+export enum RulingParty {
+  PartyA = 'party_a',
+  PartyB = 'party_b',
+  Shared = 'shared'
+}
+
 export const RequirementStatusLabel: Record<string, string> = {
   draft: '草稿',
   open: '待报价',
@@ -65,3 +80,26 @@ export const RoleLabel: Record<string, string> = {
   both: '双角色',
   admin: '管理员'
 };
+
+export const DisputeStatusLabel: Record<string, string> = {
+  submitted: '待受理',
+  accepted: '处理中',
+  awaiting_supplement: '待补充材料',
+  ruled: '已裁决'
+};
+
+export const RulingPartyLabel: Record<string, string> = {
+  party_a: '甲方责任',
+  party_b: '乙方责任',
+  shared: '双方分担'
+};
+
+// 后端争议专用错误码（与 backend/internal/constants/dispute_errors.go 对齐）
+export const DisputeErrorCode = {
+  NotParty: 40310,
+  NotAdmin: 40311,
+  AlreadyOpen: 40910,
+  IllegalTransition: 40911,
+  Closed: 40912,
+  Concurrent: 40913
+} as const;

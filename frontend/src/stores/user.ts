@@ -10,7 +10,8 @@ export const useUserStore = defineStore('user', {
   getters: {
     isAuthenticated: (state) => !!state.token,
     isRequester: (state) => !!state.user && (state.user.role === 'requester' || state.user.role === 'both'),
-    isFreelancer: (state) => !!state.user && (state.user.role === 'freelancer' || state.user.role === 'both')
+    isFreelancer: (state) => !!state.user && (state.user.role === 'freelancer' || state.user.role === 'both'),
+    isAdmin: (state) => !!state.user && state.user.role === 'admin'
   },
   actions: {
     async login(username: string, password: string) {

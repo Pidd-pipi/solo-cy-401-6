@@ -38,7 +38,8 @@ func (h *ContractHandler) Get(c *gin.Context) {
 	if !ok {
 		return
 	}
-	contract, err := h.svc.Get(id)
+	u := middleware.GetCurrentUser(c)
+	contract, err := h.svc.GetForViewer(id, u.ID, u.Role)
 	if err != nil {
 		util.Fail(c, err)
 		return

@@ -16,6 +16,13 @@
     "/api/v1/contracts/{id}": { "get": {} },
     "/api/v1/contracts/{id}/sign": { "post": {} },
     "/api/v1/contracts/{id}/complete": { "post": {} },
+    "/api/v1/contracts/{id}/disputes": { "get": {}, "post": {} },
+    "/api/v1/disputes": { "get": {} },
+    "/api/v1/disputes/{id}": { "get": {} },
+    "/api/v1/disputes/{id}/accept": { "post": {} },
+    "/api/v1/disputes/{id}/request-supplement": { "post": {} },
+    "/api/v1/disputes/{id}/supplement": { "post": {} },
+    "/api/v1/disputes/{id}/rule": { "post": {} },
     "/api/v1/dashboard": { "get": {} },
     "/api/v1/operation-logs": { "get": {} },
     "/healthz": { "get": {} }

@@ -27,6 +27,7 @@ docker compose up -d --build
 - 我的工作台：分角色展示已发布需求、已报价项目、进行中合同
 - 合同详情：条款、阶段进度（分阶段付款进度条）、双方信息
 - 个人资料：展示/编辑个人信息、技能标签、历史项目
+- 合同争议：任一当事方提交争议（事由/诉求/证据），同一合同仅允许一条处理中争议；管理员可受理、要求补充材料、裁决（必须记录责任划分、责任方、应退金额、处理意见与裁决时间）；合同详情与双方工作台同时显示「处理中争议（activeDispute）」与「最近一次裁决（lastRuling）」——处理中显示当前争议提示，裁决关闭后卡片持续回显责任方与应退金额（非当事方/非管理员两者均不可见），裁决记录不可再改
 - 横切：JWT 认证授权、操作日志、路由守卫、请求拦截器自动带 token
 
 ## 本地开发
@@ -39,7 +40,7 @@ go mod tidy
 go run ./cmd/server
 ```
 
-构建检查：`go build ./...`；测试：`go test ./...`
+构建检查：`go build ./...`；测试：`go test ./...`（争议模块含 service/repository 表驱动测试与 router HTTP 集成测试，覆盖主流程、拒绝路径与并发裁决，可用 `go test -race` 复跑）
 
 ### 前端（Vue 3 + TypeScript + Element Plus + Vite）
 
@@ -48,6 +49,8 @@ cd frontend
 npm install
 npm run dev
 ```
+
+组件测试：`npm test`（Vitest + @vue/test-utils + jsdom，干净 `npm ci` 后可直接运行，覆盖合同卡片的处理中争议/最近裁决回显）
 
 ## 技术栈
 
@@ -107,7 +110,19 @@ npm run dev
 | RequirementStatus（draft/open/bidding/in_progress/pending_review/completed/cancelled） | `backend/internal/constants/requirement_status.go` | `frontend/src/types/enums.ts` | Requirements、RequirementDetail、Dashboard |
 | BidStatus（pending/accepted/rejected/withdrawn） | `backend/internal/constants/bid_status.go` | `frontend/src/types/enums.ts` | RequirementDetail、Dashboard |
 | ContractStatus（pending_signature/in_progress/pending_review/completed/terminated） | `backend/internal/constants/contract_status.go` | `frontend/src/types/enums.ts` | ContractDetail、Dashboard |
+| DisputeStatus（submitted/accepted/awaiting_supplement/ruled） | `backend/internal/constants/dispute_status.go` | `frontend/src/types/enums.ts` | DisputePanel、Disputes、ContractDetail、Dashboard |
 | UserRole（requester/freelancer/both/admin） | `backend/internal/constants/roles.go` | `frontend/src/types/enums.ts` | Layout、RequirementDetail、Dashboard |
+
+争议专用错误码（`backend/internal/constants/dispute_errors.go`，前端镜像于 `frontend/src/types/enums.ts` 的 `DisputeErrorCode`）：
+
+| code | 常量 | 触发场景 |
+| --- | --- | --- |
+| 40310 | CodeDisputeNotParty | 非合同当事方提交/补充/查看争议 |
+| 40311 | CodeDisputeNotAdmin | 非管理员执行受理/要求补充/裁决 |
+| 40910 | CodeDisputeAlreadyOpen | 同一合同已有一条处理中争议（重复提交） |
+| 40911 | CodeDisputeIllegalTransition | 非法状态跳转（如未受理直接裁决） |
+| 40912 | CodeDisputeClosed | 争议已裁决关闭后再修改 |
+| 40913 | CodeDisputeConcurrent | 并发裁决丢失更新（CAS 失败） |
 
 ## 主要 API 列表
 
@@ -123,9 +138,16 @@ npm run dev
 | GET/POST | /api/v1/bids | 报价列表/提交 |
 | POST | /api/v1/bids/:id/withdraw | 撤回报价 |
 | GET | /api/v1/contracts | 我的合同 |
-| GET | /api/v1/contracts/:id | 合同详情 |
+| GET | /api/v1/contracts/:id | 合同详情（含 activeDispute 当前争议） |
 | POST | /api/v1/contracts/:id/sign · /complete | 签署/完成 |
-| GET | /api/v1/dashboard | 我的工作台 |
+| GET/POST | /api/v1/contracts/:id/disputes | 合同争议历史 / 当事方提交争议 |
+| GET | /api/v1/disputes | 争议列表（管理员全部，当事方自己相关） |
+| GET | /api/v1/disputes/:id | 争议详情（当事方/管理员） |
+| POST | /api/v1/disputes/:id/accept | 管理员受理（submitted→accepted） |
+| POST | /api/v1/disputes/:id/request-supplement | 管理员要求补充（→awaiting_supplement） |
+| POST | /api/v1/disputes/:id/supplement | 当事方补充材料（→accepted） |
+| POST | /api/v1/disputes/:id/rule | 管理员裁决（accepted→ruled，终态） |
+| GET | /api/v1/dashboard | 我的工作台（含 openDisputes 计数） |
 | GET/PATCH | /api/v1/users/:id | 个人资料 |
 | GET | /api/v1/operation-logs | 操作日志 |
 | GET | /healthz、/readyz | 健康检查 |

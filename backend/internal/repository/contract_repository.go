@@ -57,6 +57,22 @@ func (r *ContractRepository) FindByID(id uint) (*model.Contract, error) {
 	return &c, nil
 }
 
+// FindByIDTx loads a contract inside an existing transaction.
+func (r *ContractRepository) FindByIDTx(tx *gorm.DB, id uint) (*model.Contract, error) {
+	var c model.Contract
+	err := tx.Preload("PartyA").
+		Preload("PartyB").
+		Preload("Requirement").
+		First(&c, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("find contract by id: %w", err)
+	}
+	return &c, nil
+}
+
 // Update persists contract changes.
 func (r *ContractRepository) Update(c *model.Contract) error {
 	if err := r.db.Save(c).Error; err != nil {

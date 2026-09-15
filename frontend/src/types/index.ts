@@ -64,6 +64,40 @@ export interface Contract {
   partyA?: User;
   partyB?: User;
   requirement?: Requirement;
+  activeDispute?: Dispute | null;
+  lastRuling?: Dispute | null;
+}
+
+export interface DisputeSupplement {
+  id: number;
+  disputeId: number;
+  submitterId: number;
+  content: string;
+  attachments: string[];
+  createdAt?: string;
+  submitter?: User;
+}
+
+export interface Dispute {
+  id: number;
+  contractId: number;
+  complainantId: number;
+  reason: string;
+  claim: string;
+  evidence: string[];
+  status: string;
+  adminId?: number | null;
+  supplementNote?: string;
+  responsibility?: string;
+  rulingParty?: string;
+  refundAmount?: number | null;
+  opinion?: string;
+  ruledAt?: string | null;
+  createdAt?: string;
+  contract?: Contract;
+  complainant?: User;
+  admin?: User;
+  supplements?: DisputeSupplement[];
 }
 
 export interface PageResult<T> {

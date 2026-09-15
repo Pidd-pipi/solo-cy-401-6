@@ -28,6 +28,7 @@ type Handlers struct {
 	Requirement  *handler.RequirementHandler
 	Bid          *handler.BidHandler
 	Contract     *handler.ContractHandler
+	Dispute      *handler.DisputeHandler
 	Dashboard    *handler.DashboardHandler
 	OperationLog *handler.OperationLogHandler
 }
@@ -86,6 +87,14 @@ func New(cfg *config.Config, logger *slog.Logger, h *Handlers, users *repository
 		protected.GET("/contracts/:id", h.Contract.Get)
 		protected.POST("/contracts/:id/sign", h.Contract.Sign)
 		protected.POST("/contracts/:id/complete", h.Contract.Complete)
+		protected.GET("/contracts/:id/disputes", h.Dispute.ListByContract)
+		protected.POST("/contracts/:id/disputes", h.Dispute.File)
+		protected.GET("/disputes", h.Dispute.List)
+		protected.GET("/disputes/:id", h.Dispute.Get)
+		protected.POST("/disputes/:id/accept", h.Dispute.Accept)
+		protected.POST("/disputes/:id/request-supplement", h.Dispute.RequestSupplement)
+		protected.POST("/disputes/:id/supplement", h.Dispute.Supplement)
+		protected.POST("/disputes/:id/rule", h.Dispute.Rule)
 		protected.GET("/dashboard", h.Dashboard.Get)
 		protected.GET("/operation-logs", h.OperationLog.List)
 	}
